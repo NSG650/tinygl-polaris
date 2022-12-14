@@ -19,7 +19,7 @@ all: $(LIB)
 
 $(LIB): $(OBJS)
 	rm -f $(LIB)
-	ar rcs $(LIB) $(OBJS)
+	x86_64-polaris-ar rcs $(LIB) $(OBJS)
 	cp $(LIB) ../lib
 
 clean:

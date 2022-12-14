@@ -2,7 +2,7 @@
 # C compiler
 
 # linux
-CC= gcc
+CC= x86_64-polaris-gcc
 CFLAGS= -g -Wall -O2
 LFLAGS=
 
@@ -18,7 +18,7 @@ LFLAGS=
 # Select window API for TinyGL: 
 
 # standard X11 GLX like API 
-TINYGL_USE_GLX=y
+# TINYGL_USE_GLX=y
 
 # BEOS API
 #TINYGL_USE_BEOS=y
