@@ -5,7 +5,7 @@
 #include <fcntl.h>
 
 #include <GL/gl.h>
-#include <zbuffer.h>
+#include "zbuffer.h"
 
 #ifndef M_PI
 #  define M_PI 3.14159265
