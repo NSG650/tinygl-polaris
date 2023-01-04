@@ -3,6 +3,8 @@
 #include <string.h>
 #include <math.h>
 #include <fcntl.h>
+#include <sys/mman.h>
+#include <stdint.h>
 
 #include <GL/gl.h>
 #include "zbuffer.h"
@@ -225,10 +227,10 @@ int main(int argc, char** argv) {
 		return -1;
 	}
 
-    int winSizeX = 640;
-    int winSizeY = 480;
-    int screenWidth = framebuffer.width;
-    int pitch = framebuffer.pitch;
+    int winSizeX = 320;
+    int winSizeY = 240;
+    int screenWidth = framebuffer_info.width;
+    int pitch = framebuffer_info.pitch;
     int	mode = ZB_MODE_RGBA;
 
     ZBuffer *zBuffer = ZB_open( winSizeX, winSizeY, mode, 0, 0, 0, 0);
@@ -248,20 +250,23 @@ int main(int argc, char** argv) {
 
     initScene();
 
-    int* buffer = malloc(framebuffer.height * framebuffer.pitch);
+    int* buffer = mmap(0, framebuffer_info.height * framebuffer_info.width * framebuffer_info.bpp / 8, PROT_READ | PROT_WRITE,
+				   MAP_SHARED, framebuffer_fd, 0);
 
-    if (buffer) {
+    if (buffer != (void*)(-1)) {
             unsigned int frameCounter = 0;
             while (1) {
                 glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
                 draw();
-                memset(buffer, 0x00, framebuffer.height * framebuffer.pitch);
                 ZB_copyFrameBuffer(zBuffer, buffer, pitch);
                 ++frameCounter;
-                write(framebuffer_fd, buffer, framebuffer.height * framebuffer.pitch);
             }
-        }
     }
+    else {
+			printf("Failed to mmap the framebuffer :(\n");
+			return -1;
+	}
+
     ZB_close(zBuffer);
 
     return 0;
