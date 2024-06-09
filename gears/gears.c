@@ -5,6 +5,7 @@
 #include <fcntl.h>
 #include <sys/mman.h>
 #include <stdint.h>
+#include <sys/ioctl.h>
 
 #include <GL/gl.h>
 #include "zbuffer.h"
@@ -13,10 +14,7 @@
 #  define M_PI 3.14159265
 #endif
 
-struct fbdev_info {
-	size_t pitch, bpp;
-	uint16_t width, height;
-};
+#include <linux/fb.h>
 
 int __errno = 0;
 
@@ -212,25 +210,30 @@ void initScene() {
 }
 
 int main(int argc, char** argv) {
-    int framebuffer_fd = open("/dev/fbdev", O_RDWR, 0);
-    if (framebuffer_fd == -1) {
-        printf("Failed to acquire framebuffer :(\n");
+    int framebuffer_fd = open("/dev/fb0", O_RDWR, 0);
+
+    struct fb_fix_screeninfo fix = {0};
+    struct fb_var_screeninfo var = {0};
+
+    if (framebuffer_fd < 0) {
+        printf("[!] Failed to find framebuffer\n");
         return -1;
     }
 
-    struct fbdev_info framebuffer_info = {0};
+    if (ioctl(framebuffer_fd, FBIOGET_FSCREENINFO, &fix) < 0) {
+        printf("[!] Failed to query framebuffer\n");
+        return -1;
+    }
 
-    ioctl(framebuffer_fd, 0x1, &framebuffer_info);
-
-	if (!framebuffer_info.bpp) {
-		printf ("Invalid framebuffer config!\n");
-		return -1;
-	}
+    if (ioctl(framebuffer_fd, FBIOGET_VSCREENINFO, &var) < 0) {
+        printf("[!] Failed to query framebuffer\n");
+        return -1;
+    }
 
     int winSizeX = 320;
     int winSizeY = 240;
-    int screenWidth = framebuffer_info.width;
-    int pitch = framebuffer_info.pitch;
+    int screenWidth = var.width;
+    int pitch = fix.line_length;
     int	mode = ZB_MODE_RGBA;
 
     ZBuffer *zBuffer = ZB_open( winSizeX, winSizeY, mode, 0, 0, 0, 0);
@@ -250,8 +253,9 @@ int main(int argc, char** argv) {
 
     initScene();
 
-    int* buffer = mmap(0, framebuffer_info.height * framebuffer_info.width * framebuffer_info.bpp / 8, PROT_READ | PROT_WRITE,
-				   MAP_SHARED, framebuffer_fd, 0);
+    int* buffer = mmap(0,
+                       fix.line_length * var.yres,
+                       PROT_READ | PROT_WRITE, MAP_SHARED, framebuffer_fd, 0);
 
     if (buffer != (void*)(-1)) {
             unsigned int frameCounter = 0;
